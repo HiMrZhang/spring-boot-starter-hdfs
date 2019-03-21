@@ -1,0 +1,12 @@
+/build/
+target/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.DS_Store
+*~
+packages/
+**/dependency-reduced-pom.xml
+.mvn/wrapper/*.jar
