@@ -3,6 +3,7 @@ package com.easysoft.hdfs;
 import org.apache.hadoop.fs.FileStatus;
 
 import java.io.InputStream;
+import java.io.OutputStream;
 
 public interface IHdfsClient {
     /**
@@ -48,6 +49,14 @@ public interface IHdfsClient {
     void downloadToLocalFile(String localPath, String hdfsPath);
 
     /**
+     * 下载HDFS文件
+     *
+     * @param outputStream
+     * @param hdfsPath
+     */
+    void download(OutputStream outputStream, String hdfsPath);
+
+    /**
      * 查看某个目录下所有的文件
      *
      * @param dirPath
@@ -57,8 +66,16 @@ public interface IHdfsClient {
 
     /**
      * 创建文件
+     *
      * @param inputStream
      * @param hdfsPath
      */
     void create(InputStream inputStream, String hdfsPath);
+
+    /**
+     * 获取文件大小
+     * @param hdfsPath
+     * @return
+     */
+    Long getFileSize(String hdfsPath);
 }

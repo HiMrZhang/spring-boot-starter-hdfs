@@ -11,6 +11,7 @@ import org.springframework.util.FileCopyUtils;
 
 import java.io.*;
 import java.net.URI;
+
 @Slf4j
 public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
     public HdfsClient(HdfsProperties hdfsProperties) {
@@ -168,11 +169,23 @@ public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
     @Override
     public void downloadToLocalFile(String localPath, String hdfsPath) {
         try {
-            FSDataInputStream in = fs.open(new Path(hdfsPath));
             OutputStream outputStream = new FileOutputStream(new File(localPath));
+            download(outputStream, hdfsPath);
+            outputStream.close();
+        } catch (IOException e) {
+            throw new HadoopException("Cannot download resources " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 下载HDFS文件
+     */
+    @Override
+    public void download(OutputStream outputStream, String hdfsPath) {
+        try {
+            FSDataInputStream in = fs.open(new Path(hdfsPath));
             IOUtils.copyBytes(in, outputStream, 1024);
             in.close();
-            outputStream.close();
         } catch (IOException e) {
             throw new HadoopException("Cannot download resources " + e.getMessage(), e);
         }
@@ -211,6 +224,22 @@ public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
                 }
             }
 
+        }
+
+    }
+
+    @Override
+    public Long getFileSize(String hdfsPath) {
+        try {
+            Path srcPath = new Path(hdfsPath);
+            if (!fs.exists(srcPath)) {
+                throw new HadoopException("Cannot access " + hdfsPath + ": No such file or directory.");
+            }
+            FileStatus status = fs.getFileStatus(srcPath);
+            Long size = status.isDirectory() ? fs.getContentSummary(status.getPath()).getLength() : status.getLen();
+            return size;
+        } catch (IOException ex) {
+            throw new HadoopException("Cannot inspect resources " + ex.getMessage(), ex);
         }
 
     }

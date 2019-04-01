@@ -37,7 +37,7 @@ public class HdfsTest {
 
     @Test
     public void downloadToLocalFile() {
-        hdfsClient.downloadToLocalFile("README.md", "/file/README.md");
+        hdfsClient.downloadToLocalFile("/Users/zhangyunpeng/README.md", "/file/README.md");
     }
 
     @Test
@@ -65,6 +65,10 @@ public class HdfsTest {
     public void delete() {
         hdfsClient.delete("/file/README.md.bak");
         hdfsClient.delete("/file/checkStyle.xml");
+    }
+    @Test
+    public void getFileSize() {
+        log.info(hdfsClient.getFileSize("/soft/hive-1.1.0-cdh5.7.0.tar.gz").toString());
     }
 
 }
