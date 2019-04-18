@@ -15,5 +15,5 @@
 # limitations under the License.
 spring:
   hadoop:
-    path: hdfs://47.97.16.185:8020
-    user: hadoop
+    path: hdfs://172.16.155.92:8020
+    user: app
