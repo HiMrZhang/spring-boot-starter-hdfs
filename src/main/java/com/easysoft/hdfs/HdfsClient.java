@@ -11,11 +11,11 @@ import org.springframework.util.FileCopyUtils;
 
 import java.io.*;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
     public HdfsClient(HdfsProperties hdfsProperties) {
-        this.hdfsProperties = hdfsProperties;
         try {
             Configuration configuration = new Configuration();
             fs = FileSystem.get(new URI(hdfsProperties.getPath()), configuration, hdfsProperties.getUser());
@@ -25,7 +25,6 @@ public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
     }
 
     private FileSystem fs;
-    private HdfsProperties hdfsProperties;
 
     @Override
     public void close() throws IOException {
@@ -49,6 +48,7 @@ public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
         try {
             in = fs.open(new Path(filePath));
             content = getContent(in);
+            return content;
         } catch (IOException e) {
             throw new HadoopException("No such file or directory " + filePath, e);
         } finally {
@@ -56,17 +56,16 @@ public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
                 try {
                     in.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    log.error(e.getMessage());
                 }
             }
-            return content;
         }
 
     }
 
     private String getContent(InputStream in) throws IOException {
         StringWriter writer = new StringWriter(in.available());
-        InputStreamReader reader = new InputStreamReader(in, "UTF-8");
+        InputStreamReader reader = new InputStreamReader(in, StandardCharsets.UTF_8);
         FileCopyUtils.copy(reader, writer);
         return writer.toString();
     }
@@ -168,10 +167,8 @@ public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
      */
     @Override
     public void downloadToLocalFile(String localPath, String hdfsPath) {
-        try {
-            OutputStream outputStream = new FileOutputStream(new File(localPath));
+        try (OutputStream outputStream = new FileOutputStream(new File(localPath))) {
             download(outputStream, hdfsPath);
-            outputStream.close();
         } catch (IOException e) {
             throw new HadoopException("Cannot download resources " + e.getMessage(), e);
         }
@@ -182,12 +179,20 @@ public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
      */
     @Override
     public void download(OutputStream outputStream, String hdfsPath) {
+        FSDataInputStream in = null;
         try {
-            FSDataInputStream in = fs.open(new Path(hdfsPath));
+            in = fs.open(new Path(hdfsPath));
             IOUtils.copyBytes(in, outputStream, 1024);
-            in.close();
         } catch (IOException e) {
             throw new HadoopException("Cannot download resources " + e.getMessage(), e);
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    log.error(e.getMessage());
+                }
+            }
         }
     }
 
@@ -212,15 +217,15 @@ public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
                 // 写入内容到文件中
                 outputStream.write(buffer, 0, byteread);
             }
+            outputStream.flush();
         } catch (IOException e) {
             throw new HadoopException("Cannot create resources " + e.getMessage(), e);
         } finally {
             if (outputStream != null) {
                 try {
-                    outputStream.flush();
                     outputStream.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    log.error(e.getMessage());
                 }
             }
 
@@ -236,8 +241,7 @@ public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
                 throw new HadoopException("Cannot access " + hdfsPath + ": No such file or directory.");
             }
             FileStatus status = fs.getFileStatus(srcPath);
-            Long size = status.isDirectory() ? fs.getContentSummary(status.getPath()).getLength() : status.getLen();
-            return size;
+            return status.isDirectory() ? fs.getContentSummary(status.getPath()).getLength() : status.getLen();
         } catch (IOException ex) {
             throw new HadoopException("Cannot inspect resources " + ex.getMessage(), ex);
         }
