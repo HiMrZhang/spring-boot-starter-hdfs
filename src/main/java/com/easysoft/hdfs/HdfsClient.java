@@ -44,11 +44,9 @@ public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
     public String cat(String filePath) {
         // 读取文件
         FSDataInputStream in = null;
-        String content = null;
         try {
             in = fs.open(new Path(filePath));
-            content = getContent(in);
-            return content;
+            return getContent(in);
         } catch (IOException e) {
             throw new HadoopException("No such file or directory " + filePath, e);
         } finally {
@@ -167,10 +165,20 @@ public class HdfsClient implements Closeable, DisposableBean, IHdfsClient {
      */
     @Override
     public void downloadToLocalFile(String localPath, String hdfsPath) {
-        try (OutputStream outputStream = new FileOutputStream(new File(localPath))) {
+        OutputStream outputStream = null;
+        try {
+            outputStream = new FileOutputStream(new File(localPath));
             download(outputStream, hdfsPath);
         } catch (IOException e) {
             throw new HadoopException("Cannot download resources " + e.getMessage(), e);
+        } finally {
+            if (outputStream != null) {
+                try {
+                    outputStream.close();
+                } catch (IOException e) {
+                    log.error(e.getMessage());
+                }
+            }
         }
     }
 

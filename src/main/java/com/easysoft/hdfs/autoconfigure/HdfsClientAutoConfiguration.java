@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties(HdfsProperties.class)
 public class HdfsClientAutoConfiguration {
     @Bean
+    @ConditionalOnMissingBean(HdfsClient.class)
     public HdfsClient hdfsClient(HdfsProperties hdfsProperties) {
         return new HdfsClient(hdfsProperties);
     }
